@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Book a fitting</title>
+<meta name="description" content="Tell us which job is eating your team's week. A person reads it and answers.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,500;1,6..96,400&family=Instrument+Sans:ital,wght@0,400;0,500;0,600&display=swap">
+<style>
+:root {
+  --paper:  #f7f7f5;
+  --ink:    #101114;
+  --muted:  #6b6b71;
+  --line:   #dcdbd6;
+  --alarm:  #8f2020;
+  --ink-inverse: #f7f7f5;
+  --display: "Bodoni Moda", "Bodoni MT", Didot, Georgia, serif;
+  --sans: "Instrument Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --edge: clamp(1.25rem, 6vw, 5.5rem);
+  --gap: clamp(2rem, 6vw, 5rem);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0e0e10;
+    --ink:   #f0efec;
+    --muted: #9a9aa0;
+    --line:  #33333a;
+    --alarm: #e39292;
+    --ink-inverse: #0e0e10;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0e0e10;
+  --ink:   #f0efec;
+  --muted: #9a9aa0;
+  --line:  #33333a;
+  --alarm: #e39292;
+  --ink-inverse: #0e0e10;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 17px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 78rem; margin: 0 auto; padding-inline: var(--edge); }
+a { color: inherit; }
+a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 4px;
+}
+h1, h2 { font-family: var(--display); font-weight: 400; text-wrap: balance; margin: 0; }
+p { margin: 0; }
+
+.baste {
+  height: 1px;
+  border: 0;
+  margin: 0;
+  background-image: repeating-linear-gradient(to right, var(--line) 0 12px, transparent 12px 20px);
+}
+
+.nav { display: flex; align-items: center; justify-content: space-between; gap: 1rem; height: 76px; }
+.mark { font-family: var(--display); font-size: 1.18rem; text-decoration: none; white-space: nowrap; }
+.mark span { font-style: italic; }
+.nav-note { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.28em; color: var(--muted); display: none; }
+@media (min-width: 700px) { .nav-note { display: block; } }
+
+.page { display: grid; gap: var(--gap); grid-template-columns: 1fr; padding-block: clamp(3rem, 9vh, 6rem) clamp(3rem, 8vh, 5rem); }
+@media (min-width: 940px) { .page { grid-template-columns: 0.8fr 1.2fr; align-items: start; } }
+
+.ask h1 { font-size: clamp(2.2rem, 4.4vw, 3.4rem); line-height: 1.06; letter-spacing: -0.012em; margin-bottom: 1.5rem; }
+.ask .sub { color: var(--muted); max-width: 32ch; }
+.direct { margin-top: clamp(2.5rem, 6vw, 4rem); }
+.direct h2 { font-family: var(--sans); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.22em; color: var(--muted); margin-bottom: 1rem; }
+.direct a { font-family: var(--display); font-size: 1.35rem; text-decoration: none; border-bottom: 1px solid var(--line); padding-bottom: 2px; }
+.direct a:hover { border-color: var(--ink); }
+.direct p { color: var(--muted); font-size: 0.92rem; margin-top: 1rem; max-width: 30ch; }
+
+.field { display: grid; gap: 0.35rem; margin-bottom: clamp(1.75rem, 4vw, 2.5rem); }
+.field label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.18em; color: var(--muted); }
+.field .help { font-size: 0.88rem; color: var(--muted); }
+.field input, .field textarea {
+  font: inherit;
+  font-size: 1.02rem;
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  padding: 0.55rem 0 0.6rem;
+  width: 100%;
+  transition: border-color 0.2s ease;
+}
+.field textarea { min-height: 7rem; resize: vertical; line-height: 1.55; }
+.field input:hover, .field textarea:hover { border-color: var(--muted); }
+.field input:focus, .field textarea:focus { border-color: var(--ink); }
+.field .error { font-size: 0.85rem; color: var(--alarm); display: none; }
+.field[data-invalid="true"] input, .field[data-invalid="true"] textarea { border-color: var(--alarm); }
+.field[data-invalid="true"] .error { display: block; }
+
+.trap { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+.pair { display: grid; gap: 0 clamp(1.5rem, 4vw, 3rem); grid-template-columns: 1fr; }
+@media (min-width: 620px) { .pair { grid-template-columns: 1fr 1fr; } }
+
+.submit {
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  background: var(--ink);
+  color: var(--ink-inverse);
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  padding: 1.05rem 2.4rem;
+  cursor: pointer;
+  transition: background 0.25s ease, color 0.25s ease;
+}
+.submit:hover { background: transparent; color: var(--ink); }
+.submit[disabled] { opacity: 0.55; cursor: progress; }
+.form-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 1.25rem 2rem; margin-top: clamp(0.5rem, 2vw, 1rem); }
+.form-foot .privacy { color: var(--muted); font-size: 0.88rem; max-width: 28ch; }
+
+.sent { display: none; }
+form[data-state="sent"] .form-body { display: none; }
+form[data-state="sent"] .sent { display: block; }
+.sent h2 { font-size: clamp(1.8rem, 3.4vw, 2.4rem); margin-bottom: 1rem; }
+.sent p { color: var(--muted); max-width: 40ch; }
+.form-alert { display: none; margin-bottom: 2rem; padding-left: 1rem; border-left: 2px solid var(--alarm); color: var(--alarm); font-size: 0.92rem; }
+form[data-state="failed"] .form-alert { display: block; }
+
+.foot {
+  padding-block: 2.5rem 3.5rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 2rem;
+  justify-content: space-between;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="nav">
+    <a class="mark" href="index.html">L'Agente <span>Studio</span></a>
+    <span class="nav-note">The AI Atelier</span>
+  </nav>
+  <hr class="baste">
+
+  <main class="page">
+    <div class="ask">
+      <h1>Book a fitting.</h1>
+      <p class="sub">Tell us which job is eating your team's week. We answer within two working days.</p>
+
+      <div class="direct">
+        <h2>Or write to us</h2>
+        <a href="mailto:studio@lagente.ai">studio@lagente.ai</a>
+        <p>A person reads it, not a system, and replies from their own name.</p>
+      </div>
+    </div>
+
+    <form id="fitting" method="POST" action="/api/fitting" data-state="idle" novalidate>
+      <div class="form-body">
+        <div class="form-alert" role="alert">That did not send. Write to studio@lagente.ai and we will pick it up from there.</div>
+
+        <div class="pair">
+          <div class="field">
+            <label for="name">Name</label>
+            <input id="name" name="name" type="text" autocomplete="name" required>
+            <span class="error">We would like to know who we are writing back to.</span>
+          </div>
+          <div class="field">
+            <label for="company">Company</label>
+            <input id="company" name="company" type="text" autocomplete="organization" required>
+            <span class="error">Tell us the name of the company.</span>
+          </div>
+        </div>
+
+        <div class="pair">
+          <div class="field">
+            <label for="role">Role</label>
+            <input id="role" name="role" type="text" autocomplete="organization-title" required>
+            <span class="error">Whatever it says on the door.</span>
+          </div>
+          <div class="field">
+            <label for="email">Work email</label>
+            <input id="email" name="email" type="email" autocomplete="email" required>
+            <span class="error">We need an address that reaches you.</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="job">The job that is eating the hours</label>
+          <span class="help">One is enough. The messier it is, the better we can read it.</span>
+          <textarea id="job" name="job" required></textarea>
+          <span class="error">This is the part we read first.</span>
+        </div>
+
+        <div class="trap" aria-hidden="true">
+          <label for="website">Website</label>
+          <input id="website" name="website" type="text" tabindex="-1" autocomplete="off">
+        </div>
+
+        <div class="form-foot">
+          <button class="submit" type="submit">Book a fitting</button>
+          <span class="privacy">What you write here stays between us, and it trains nothing.</span>
+        </div>
+      </div>
+
+      <div class="sent" role="status">
+        <h2>It is with us.</h2>
+        <p>You will hear back within two working days, from a person, at the address you gave.</p>
+      </div>
+    </form>
+  </main>
+  <hr class="baste">
+
+  <footer class="foot">
+    <span>L'Agente Studio. The AI Atelier.</span>
+    <a href="mailto:studio@lagente.ai">studio@lagente.ai</a>
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  var form = document.getElementById("fitting");
+  if (!form) return;
+  var button = form.querySelector(".submit");
+  var label = button.textContent;
+
+  function validate() {
+    var ok = true;
+    var fields = form.querySelectorAll(".field");
+    for (var i = 0; i < fields.length; i++) {
+      var control = fields[i].querySelector("input, textarea");
+      var valid = control.checkValidity();
+      fields[i].setAttribute("data-invalid", valid ? "false" : "true");
+      if (!valid && ok) { control.focus(); ok = false; }
+    }
+    return ok;
+  }
+
+  form.addEventListener("input", function (event) {
+    var field = event.target.closest(".field");
+    if (field && field.getAttribute("data-invalid") === "true" && event.target.checkValidity()) {
+      field.setAttribute("data-invalid", "false");
+    }
+  });
+
+  form.addEventListener("submit", function (event) {
+    if (!validate()) { event.preventDefault(); return; }
+
+    // Without fetch the form posts on its own and the function answers with a page.
+    if (!window.fetch) return;
+
+    event.preventDefault();
+    form.setAttribute("data-state", "sending");
+    button.disabled = true;
+    button.textContent = "Sending";
+
+    var payload = {};
+    new FormData(form).forEach(function (value, key) { payload[key] = value; });
+
+    fetch(form.getAttribute("action"), {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload)
+    })
+      .then(function (response) {
+        if (!response.ok) throw new Error("http " + response.status);
+        return response.json();
+      })
+      .then(function (data) {
+        if (!data || !data.ok) throw new Error("refused");
+        form.setAttribute("data-state", "sent");
+      })
+      .catch(function () {
+        form.setAttribute("data-state", "failed");
+        button.disabled = false;
+        button.textContent = label;
+      });
+  });
+})();
+</script>
+</body>
+</html>
