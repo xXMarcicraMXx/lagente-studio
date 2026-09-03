@@ -15,4 +15,4 @@ Two static pages plus the form that receives fitting requests.
   repository root, Pages serves `functions/` as static files instead of
   compiling it, and every endpoint answers 404.
 - Bindings: D1 database bound as `DB`
-- Variables: `LEADS_KEY`, the secret in the `/leads` URL
+- Variables: `FORM_SECRET`, the secret in the `/leads` URL

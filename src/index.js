@@ -112,7 +112,7 @@ async function showLeads(request, env) {
   const key = url.searchParams.get("key") || "";
 
   // Without the right key the page does not exist. It does not announce itself.
-  if (!env.LEADS_KEY || key !== env.LEADS_KEY) return new Response("Not found", { status: 404 });
+  if (!env.FORM_SECRET || key !== env.FORM_SECRET) return new Response("Not found", { status: 404 });
   if (!env.DB) return new Response("No database binding on this project.", { status: 500 });
 
   const { results } = await env.DB.prepare(
