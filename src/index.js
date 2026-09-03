@@ -2,6 +2,8 @@
 // Static pages come from public/ through the ASSETS binding. Two routes are
 // handled here: the fitting form writes to D1, and /leads reads it back.
 
+const BUILD = "f1b3446";
+
 const FIELDS = ["name", "company", "role", "email", "job"];
 const LIMITS = { name: 120, company: 160, role: 120, email: 254, job: 4000 };
 
@@ -176,6 +178,12 @@ th,td{border-color:#26262b}td.when,.dim,p.count,th{color:#9a9aa0}}
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+
+    // A marker to tell which build is live. It says nothing about the data
+    // and nothing about whether the secret is set.
+    if (url.pathname === "/api/health") {
+      return json({ ok: true, build: BUILD });
+    }
 
     if (url.pathname === "/api/fitting") {
       if (request.method !== "POST") return new Response("Method not allowed", { status: 405 });
