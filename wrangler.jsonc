@@ -9,10 +9,14 @@
   "assets": {
     "directory": "./public",
     "binding": "ASSETS"
-  }
+  },
 
-  // Still to add, once the database exists:
-  // "d1_databases": [
-  //   { "binding": "DB", "database_name": "lagente-leads", "database_id": "..." }
-  // ]
+  // Where the fitting requests land.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "lagente-leads",
+      "database_id": "914f1e44-8d57-4b65-9dd7-d494c68e53d4"
+    }
+  ]
 }
