@@ -105,6 +105,8 @@ p { margin: 0; }
 .field[data-invalid="true"] input, .field[data-invalid="true"] textarea { border-color: var(--alarm); }
 .field[data-invalid="true"] .error { display: block; }
 
+.trap { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
 .pair { display: grid; gap: 0 clamp(1.5rem, 4vw, 3rem); grid-template-columns: 1fr; }
 @media (min-width: 620px) { .pair { grid-template-columns: 1fr 1fr; } }
 
@@ -172,9 +174,7 @@ form[data-state="failed"] .form-alert { display: block; }
       </div>
     </div>
 
-    <!-- Set action to the real endpoint before publishing. Until then the page
-         shows the confirmation locally so the flow can be reviewed. -->
-    <form id="fitting" method="POST" action="https://formspree.io/f/REPLACE_ME" data-state="idle" novalidate>
+    <form id="fitting" method="POST" action="/api/fitting" data-state="idle" novalidate>
       <div class="form-body">
         <div class="form-alert" role="alert">That did not send. Write to studio@lagente.ai and we will pick it up from there.</div>
 
@@ -211,6 +211,11 @@ form[data-state="failed"] .form-alert { display: block; }
           <span class="error">This is the part we read first.</span>
         </div>
 
+        <div class="trap" aria-hidden="true">
+          <label for="website">Website</label>
+          <input id="website" name="website" type="text" tabindex="-1" autocomplete="off">
+        </div>
+
         <div class="form-foot">
           <button class="submit" type="submit">Book a fitting</button>
           <span class="privacy">What you write here stays between us, and it trains nothing.</span>
@@ -237,7 +242,7 @@ form[data-state="failed"] .form-alert { display: block; }
   var form = document.getElementById("fitting");
   if (!form) return;
   var button = form.querySelector(".submit");
-  var preview = form.getAttribute("action").indexOf("REPLACE_ME") !== -1;
+  var label = button.textContent;
 
   function validate() {
     var ok = true;
@@ -260,12 +265,36 @@ form[data-state="failed"] .form-alert { display: block; }
 
   form.addEventListener("submit", function (event) {
     if (!validate()) { event.preventDefault(); return; }
+
+    // Without fetch the form posts on its own and the function answers with a page.
+    if (!window.fetch) return;
+
+    event.preventDefault();
+    form.setAttribute("data-state", "sending");
     button.disabled = true;
     button.textContent = "Sending";
-    if (preview) {
-      event.preventDefault();
-      setTimeout(function () { form.setAttribute("data-state", "sent"); }, 600);
-    }
+
+    var payload = {};
+    new FormData(form).forEach(function (value, key) { payload[key] = value; });
+
+    fetch(form.getAttribute("action"), {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload)
+    })
+      .then(function (response) {
+        if (!response.ok) throw new Error("http " + response.status);
+        return response.json();
+      })
+      .then(function (data) {
+        if (!data || !data.ok) throw new Error("refused");
+        form.setAttribute("data-state", "sent");
+      })
+      .catch(function () {
+        form.setAttribute("data-state", "failed");
+        button.disabled = false;
+        button.textContent = label;
+      });
   });
 })();
 </script>
