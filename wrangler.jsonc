@@ -1,0 +1,18 @@
+{
+  // The Worker that serves the site. Static pages come from public/ and are
+  // matched first; anything with no file behind it falls through to
+  // src/index.js, which is where /api/fitting and /leads live.
+  "name": "lagente-studio",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-01",
+
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  }
+
+  // Still to add, once the database exists:
+  // "d1_databases": [
+  //   { "binding": "DB", "database_name": "lagente-leads", "database_id": "..." }
+  // ]
+}
