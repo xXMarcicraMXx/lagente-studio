@@ -1,11 +1,17 @@
 // L'Agente Studio.
 // Static pages come from public/ through the ASSETS binding. Two routes are
 // handled here: the fitting form writes to D1, and /leads reads it back.
+// After a write, two things happen off the request path: Marcello gets a
+// Telegram note, and the prospect gets an automatic email with three questions.
 
 const BUILD = "f1b3446";
 
-const FIELDS = ["name", "company", "role", "email", "job"];
-const LIMITS = { name: 120, company: 160, role: 120, email: 254, job: 4000 };
+const FIELDS = ["name", "company", "role", "email", "job", "site"];
+const LIMITS = { name: 120, company: 160, role: 120, email: 254, job: 4000, site: 300 };
+const REQUIRED = ["name", "company"];
+
+const FROM = "Marcello · L'Agente Studio <studio@lagente.ai>";
+const REPLY_TO = "studio@lagente.ai";
 
 function clean(value, max) {
   if (typeof value !== "string") return "";
@@ -57,7 +63,124 @@ async function readBody(request) {
   return out;
 }
 
-async function receiveFitting(request, env) {
+// ---------------------------------------------------------------------------
+// The automatic email. It says it is automatic; the reply will not be.
+// Italian when the request comes from Italy (or the form says so), English otherwise.
+
+function firstName(name) {
+  return (name || "").split(/\s+/)[0] || "";
+}
+
+function emailCopy(row, lang) {
+  const who = firstName(row.name);
+  if (lang === "it") {
+    return {
+      subject: "Ricevuto — tre domande veloci prima di risponderti",
+      text: `Ciao ${who},
+
+il tuo messaggio è appena arrivato. Questa email è automatica; la risposta no. Le leggo tutte io e rispondo entro due giorni lavorativi.
+
+Perché la risposta sia utile e non generica, tre cose veloci, anche a spanne:
+
+1. Cosa fa ${row.company}, e chi sono i vostri clienti?
+2. Qual è il lavoro che si mangia più ore ogni settimana, e da dove vi arriva di solito?
+3. Dove vive quel lavoro oggi: Google Workspace, Microsoft 365, altro?
+
+Basta rispondere qui. Resta tra noi e non addestra niente.
+
+Marcello
+L'Agente Studio · The AI Atelier
+
+—
+MITICLA S.R.L.S. · Via Perarello 25, 35010 Vigodarzere (PD), Italia
+Ricevi questa email perché ci hai scritto da lagente.ai. Rispondi "stop" e non scriveremo più.`,
+    };
+  }
+  return {
+    subject: "Got it — three quick questions before I write back",
+    text: `Hi ${who},
+
+Your note just came in. This message is automatic; the reply won't be. I read every one of these myself and write back within two working days.
+
+So that my reply is useful rather than generic, three quick things — rough answers are fine:
+
+1. What does ${row.company} do, and who are your clients?
+2. What's the one job that eats the most hours each week, and how does that work usually reach you?
+3. Where does that work live today: Google Workspace, Microsoft 365, something else?
+
+Just hit reply. It stays between us and trains nothing.
+
+Marcello
+L'Agente Studio · The AI Atelier
+
+—
+MITICLA S.R.L.S. · Via Perarello 25, 35010 Vigodarzere (PD), Italy
+You're receiving this because you wrote to us at lagente.ai. Reply "stop" and we won't write again.`,
+  };
+}
+
+function textToHtml(text) {
+  const paragraphs = escape(text).split(/\n\n+/);
+  return `<!doctype html><meta charset="utf-8"><div style="font:16px/1.65 -apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#101114;max-width:38rem">${paragraphs
+    .map((p) => `<p style="margin:0 0 1em">${p.replace(/\n/g, "<br>")}</p>`)
+    .join("")}</div>`;
+}
+
+async function sendEmail(env, row, lang) {
+  const copy = emailCopy(row, lang);
+  if (!env.RESEND_API_KEY) {
+    // Local or not yet configured: show what would have gone out, send nothing.
+    console.log(`[email:dry-run] to=${row.email} lang=${lang}\nSubject: ${copy.subject}\n\n${copy.text}`);
+    return;
+  }
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${env.RESEND_API_KEY}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      from: FROM,
+      to: [row.email],
+      reply_to: REPLY_TO,
+      subject: copy.subject,
+      text: copy.text,
+      html: textToHtml(copy.text),
+    }),
+  });
+  if (!res.ok) console.error(`[email] resend ${res.status}: ${(await res.text()).slice(0, 300)}`);
+}
+
+// ---------------------------------------------------------------------------
+// The Telegram note to Marcello. Plain text, no secrets, no link with the key in it.
+
+async function notifyTelegram(env, row, country) {
+  const lines = [
+    `Nuova richiesta di fitting`,
+    `${row.name}${row.role ? " · " + row.role : ""}`,
+    `${row.company}${row.site ? " · " + row.site : ""}`,
+    row.email,
+    country ? `Paese: ${country}` : null,
+    row.job ? `\n${row.job.slice(0, 400)}${row.job.length > 400 ? "…" : ""}` : "\n(nessuna descrizione del lavoro)",
+    `\n→ lagente.ai/leads`,
+  ].filter(Boolean);
+  const text = lines.join("\n");
+
+  if (!env.TELEGRAM_BOT_TOKEN || !env.TELEGRAM_CHAT_ID) {
+    console.log(`[telegram:dry-run]\n${text}`);
+    return;
+  }
+  const res = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ chat_id: env.TELEGRAM_CHAT_ID, text, disable_web_page_preview: true }),
+  });
+  if (!res.ok) console.error(`[telegram] ${res.status}: ${(await res.text()).slice(0, 300)}`);
+}
+
+// ---------------------------------------------------------------------------
+
+async function receiveFitting(request, env, ctx) {
   const wantsJson = (request.headers.get("content-type") || "").includes("application/json");
   const ok = () =>
     wantsJson
@@ -80,24 +203,27 @@ async function receiveFitting(request, env) {
 
   const row = {};
   for (const field of FIELDS) row[field] = clean(body[field], LIMITS[field]);
-  if (!row.name || !row.company || !row.role || !row.job) return fail(422, "missing fields");
+  for (const field of REQUIRED) if (!row[field]) return fail(422, "missing fields");
   if (!isEmail(row.email)) return fail(422, "bad email");
 
   if (!env.DB) return fail(500, "no database binding");
 
+  const country = request.headers.get("cf-ipcountry") || "";
+
   try {
     await env.DB.prepare(
-      `INSERT INTO fittings (created_at, name, company, role, email, job, country, ip, user_agent)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO fittings (created_at, name, company, role, email, job, site, country, ip, user_agent)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
       .bind(
         new Date().toISOString(),
         row.name,
         row.company,
-        row.role,
+        row.role || null,
         row.email,
-        row.job,
-        request.headers.get("cf-ipcountry") || "",
+        row.job || null,
+        row.site || null,
+        country,
         request.headers.get("cf-connecting-ip") || "",
         (request.headers.get("user-agent") || "").slice(0, 300)
       )
@@ -105,6 +231,13 @@ async function receiveFitting(request, env) {
   } catch {
     return fail(500, "write failed");
   }
+
+  // Everything after the write happens off the request: the prospect gets
+  // "It is with us" at once, whatever happens to the email or the note.
+  const lang = clean(body.lang, 5) === "it" || country === "IT" ? "it" : "en";
+  const after = Promise.allSettled([sendEmail(env, row, lang), notifyTelegram(env, row, country)]);
+  if (ctx && ctx.waitUntil) ctx.waitUntil(after);
+  else await after;
 
   return ok();
 }
@@ -118,15 +251,15 @@ async function showLeads(request, env) {
   if (!env.DB) return new Response("No database binding on this project.", { status: 500 });
 
   const { results } = await env.DB.prepare(
-    `SELECT id, created_at, name, company, role, email, job, country
+    `SELECT id, created_at, name, company, role, email, job, site, country
        FROM fittings ORDER BY id DESC LIMIT 500`
   ).all();
   const rows = results || [];
 
   if (url.searchParams.get("csv")) {
-    const head = "id,created_at,name,company,role,email,job,country\n";
+    const head = "id,created_at,name,company,role,email,job,site,country\n";
     const body = rows
-      .map((r) => [r.id, r.created_at, r.name, r.company, r.role, r.email, r.job, r.country].map(csvCell).join(","))
+      .map((r) => [r.id, r.created_at, r.name, r.company, r.role, r.email, r.job, r.site, r.country].map(csvCell).join(","))
       .join("\n");
     return new Response(head + body, {
       headers: {
@@ -140,9 +273,11 @@ async function showLeads(request, env) {
     .map(
       (r) => `<tr>
 <td class="when">${escape(r.created_at).replace("T", " ").slice(0, 16)}</td>
-<td><strong>${escape(r.name)}</strong><br><span class="dim">${escape(r.role)}</span></td>
-<td>${escape(r.company)}<br><a href="mailto:${escape(r.email)}">${escape(r.email)}</a></td>
-<td class="job">${escape(r.job)}</td>
+<td><strong>${escape(r.name)}</strong><br><span class="dim">${escape(r.role || "—")}</span></td>
+<td>${escape(r.company)}<br><a href="mailto:${escape(r.email)}">${escape(r.email)}</a>${
+        r.site ? `<br><span class="dim">${escape(r.site)}</span>` : ""
+      }</td>
+<td class="job">${r.job ? escape(r.job) : '<span class="dim">—</span>'}</td>
 <td class="dim">${escape(r.country)}</td>
 </tr>`
     )
@@ -176,18 +311,18 @@ th,td{border-color:#26262b}td.when,.dim,p.count,th{color:#9a9aa0}}
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
     // A marker to tell which build is live. It says nothing about the data
-    // and nothing about whether the secret is set.
+    // and nothing about whether the secrets are set.
     if (url.pathname === "/api/health") {
       return json({ ok: true, build: BUILD });
     }
 
     if (url.pathname === "/api/fitting") {
       if (request.method !== "POST") return new Response("Method not allowed", { status: 405 });
-      return receiveFitting(request, env);
+      return receiveFitting(request, env, ctx);
     }
 
     if (url.pathname === "/leads") {
