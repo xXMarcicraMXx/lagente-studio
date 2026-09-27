@@ -1,0 +1,7 @@
+# Copy to .dev.vars for `npx wrangler dev`. Never commit .dev.vars.
+# Leave RESEND_API_KEY and the Telegram pair empty to run in dry-run mode:
+# the email and the note are printed to the console instead of being sent.
+FORM_SECRET=local-bench
+RESEND_API_KEY=
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_CHAT_ID=

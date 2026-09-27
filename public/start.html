@@ -85,6 +85,8 @@ p { margin: 0; }
 
 .field { display: grid; gap: 0.35rem; margin-bottom: clamp(1.75rem, 4vw, 2.5rem); }
 .field label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.18em; color: var(--muted); }
+.field label .opt { text-transform: none; letter-spacing: 0.04em; font-style: italic; opacity: 0.75; margin-left: 0.4em; }
+.field input::placeholder { color: var(--muted); opacity: 0.55; }
 .field .help { font-size: 0.88rem; color: var(--muted); }
 .field input, .field textarea {
   font: inherit;
@@ -193,22 +195,25 @@ form[data-state="failed"] .form-alert { display: block; }
 
         <div class="pair">
           <div class="field">
-            <label for="role">Role</label>
-            <input id="role" name="role" type="text" autocomplete="organization-title" required>
-            <span class="error">Whatever it says on the door.</span>
-          </div>
-          <div class="field">
             <label for="email">Work email</label>
             <input id="email" name="email" type="email" autocomplete="email" required>
             <span class="error">We need an address that reaches you.</span>
           </div>
+          <div class="field">
+            <label for="site">Company website <span class="opt">optional</span></label>
+            <input id="site" name="site" type="text" inputmode="url" autocomplete="url" placeholder="yourcompany.com">
+          </div>
         </div>
 
         <div class="field">
-          <label for="job">The job that is eating the hours</label>
-          <span class="help">One is enough. The messier it is, the better we can read it.</span>
-          <textarea id="job" name="job" required></textarea>
-          <span class="error">This is the part we read first.</span>
+          <label for="role">Role <span class="opt">optional</span></label>
+          <input id="role" name="role" type="text" autocomplete="organization-title">
+        </div>
+
+        <div class="field">
+          <label for="job">The job that is eating the hours <span class="opt">optional</span></label>
+          <span class="help">One is enough. The messier it is, the better we can read it. Leave it blank and we will ask by email.</span>
+          <textarea id="job" name="job"></textarea>
         </div>
 
         <div class="trap" aria-hidden="true">
@@ -225,6 +230,7 @@ form[data-state="failed"] .form-alert { display: block; }
       <div class="sent" role="status">
         <h2>It is with us.</h2>
         <p>You will hear back within two working days, from a person, at the address you gave.</p>
+        <p>In the meantime an automatic note is on its way with three short questions. Answering them is what makes the reply worth reading.</p>
       </div>
     </form>
   </main>
